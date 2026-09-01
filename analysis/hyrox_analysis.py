@@ -21,15 +21,9 @@ def _():
 
 @app.cell
 def _(getpass, os):
-    # UWAGA: poniżej podmień na nazwę swojego użytkownika
-    user = "postgres.zmnrqzujsapssgoeitzb"
-
-    # UWAGA: poniżej podmień na host swojej bazy danych
-    host = "aws-1-eu-central-1.pooler.supabase.com"
-
-    # UWAGA: tutaj nic nie zmieniaj, po uruchomieniu tej komórki trzeba będzie wkleić 
-    # hasło do bazy danych i zatwierdzić ENTER
-    password = os.environ.get("SUPABASE_PASSWORD", getpass("podaj hasło"))
+    user = os.environ.get("SUPABASE_USER")
+    host = os.environ.get("SUPABASE_HOST")
+    password = os.environ.get("SUPABASE_PASSWORD", getpass("Enter database password: "))
     return host, password, user
 
 
