@@ -1,0 +1,450 @@
+{
+  "name": "Hyrox Results Scraper",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f9afb2a5-f87d-4273-bb14-fca88b06e213",
+      "name": "Start",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1632,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://results.hyrox.com/season-8/index.php",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "pid",
+              "value": "list"
+            },
+            {
+              "name": "pidp",
+              "value": "ranking_nav"
+            },
+            {
+              "name": "search[sex]",
+              "value": "={{ $json.sex }}"
+            },
+            {
+              "name": "search[age_class]",
+              "value": "={{ $json.age_class }}"
+            },
+            {
+              "name": "event",
+              "value": "={{ $json.event_id }}"
+            },
+            {
+              "name": "ranking",
+              "value": "time_finish_netto"
+            },
+            {
+              "name": "page",
+              "value": "={{ $json.page }}"
+            },
+            {
+              "name": "search[nation]",
+              "value": "={{ $json.country }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "user-agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.3"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "ce7cce39-6ca3-4de5-98c1-58ec2b1d46bc",
+      "name": "Fetch Single Page",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -528,
+        -240
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.detail_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "user-agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.3"
+            }
+          ]
+        },
+        "options": {
+          "allowUnauthorizedCerts": true,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        192
+      ],
+      "id": "8042ed6d-d26c-4107-849e-9bf524415c0f",
+      "name": "Fetch Single Details",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.random() * 4 + 2 }}"
+      },
+      "id": "a9238ac6-a788-4293-8bc3-92d22bacf1c9",
+      "name": "Random Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        192,
+        192
+      ],
+      "webhookId": "180d8850-b100-4c24-9e93-d3a7ecf6a2e8"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8243ccd1-a786-488d-bb32-5dc370761bb0",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -48,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "14391c09-cb70-4859-83ed-58f123372fe0",
+              "name": "event_id",
+              "value": "HPRO_LR3MS4JI140A",
+              "type": "string"
+            },
+            {
+              "id": "876cf6e1-87f9-4510-93bb-51d389e665c3",
+              "name": "search[sex]",
+              "value": "M",
+              "type": "string"
+            },
+            {
+              "id": "42e89370-63a6-429b-a8eb-877d89f4b15f",
+              "name": "search[age_class]",
+              "value": "%",
+              "type": "string"
+            },
+            {
+              "id": "e25423f6-f1af-4286-8fe9-210c78453a04",
+              "name": "search[nation]",
+              "value": "GBR",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1392,
+        176
+      ],
+      "id": "04a2ea3e-6e51-4e6a-a061-cb010d4f63d7",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "function esc(v) {\n  if (v === null || v === undefined) return 'NULL';\n  return \"'\" + String(v).replace(/'/g, \"''\") + \"'\";\n}\n\nfunction escInt(v) {\n  if (v === null || v === undefined || v === '') return 'NULL';\n  const n = parseInt(String(v).trim(), 10);\n  return Number.isFinite(n) ? String(n) : 'NULL';\n}\n\nfunction escInterval(v) {\n  if (!v) return 'NULL';\n  const s = /^\\d{1,2}:\\d{2}$/.test(v) ? '00:' + v : v;\n  return `INTERVAL ${esc(s)}`;\n}\n\nfunction escTime(v) {\n  if (!v) return 'NULL';\n  return `TIME ${esc(v)}`;\n}\n\nfunction parseMember(s) {\n  const m = String(s).match(/^(.*?)\\s*\\(([A-Z]{2,3})\\)\\s*$/);\n  if (m) return { name: m[1].trim(), country: m[2] };\n  return { name: String(s).trim(), country: null };\n}\n\nfunction countryEq(c) {\n  return c ? `= ${esc(c)}` : `IS NULL`;\n}\n\nconst item = $input.item.json;\n\nconst event_id = item.event_id || $('Edit Fields').first().json.event_id;\nconst idp = item.idp || (item.detail_url ? item.detail_url.match(/[?&]idp=([^&#]*)/)?.[1] : null);\n\nif (!event_id || !idp) {\n  throw new Error(`Missing event_id or idp. event_id=${event_id}, idp=${idp}`);\n}\n\nconst season = item.season || 'season-8';\nconst detail_url = item.detail_url || null;\n\nconst details = Array.isArray(item.individual_details) ? item.individual_details : [];\nconst workout = Array.isArray(item.workout_summary) ? item.workout_summary : [];\nconst replay = Array.isArray(item.race_replay) ? item.race_replay : [];\n\nconst sectionItems = (title) => {\n  const s = details.find((d) => d.title === title);\n  return s && s.items ? s.items : {};\n};\n\nconst raceDetails = sectionItems('Race Details');\nconst team = {\n  ...sectionItems('Doubles Team'),\n  ...sectionItems('Individual'),\n};\n\nlet membersRaw = sectionItems('Members');\n\nif (!membersRaw || Object.keys(membersRaw).length === 0) {\n  const name =\n    item.member ||\n    team['Name'] ||\n    (team['Firstname'] || team['Lastname']\n      ? `${team['Lastname'] || ''}, ${team['Firstname'] || ''}`.trim()\n      : null);\n\n  membersRaw = name\n    ? {\n        'Member 1': item.country ? `${name} (${item.country})` : name,\n      }\n    : {};\n}\n\nconst judging = sectionItems('Judging Decision');\nconst overall = sectionItems('Overall Time');\n\nconst members = [];\nconst seen = new Set();\n\nfor (const raw of Object.values(membersRaw || {})) {\n  if (!raw) continue;\n  const parsed = parseMember(raw);\n  const key = `${parsed.name}|${parsed.country || ''}`;\n  if (seen.has(key)) continue;\n  seen.add(key);\n  members.push(parsed);\n}\n\nconst stmts = [];\nconst RES_ID_SUBQ = `(SELECT result_id FROM results WHERE event_id = ${esc(event_id)} AND idp = ${esc(idp)})`;\n\nstmts.push(`\nINSERT INTO events (event_id, season, race_name, division)\nVALUES (${esc(event_id)}, ${esc(season)}, ${esc(raceDetails['Race'])}, ${esc(raceDetails['Division'])})\nON CONFLICT (event_id) DO UPDATE\nSET season = COALESCE(EXCLUDED.season, events.season),\n    race_name = COALESCE(EXCLUDED.race_name, events.race_name),\n    division = COALESCE(EXCLUDED.division, events.division);\n`.trim());\n\nfor (const a of members) {\n  if (a.country) {\n    stmts.push(`\nINSERT INTO athletes (name, country)\nVALUES (${esc(a.name)}, ${esc(a.country)})\nON CONFLICT (name, country) DO NOTHING;\n`.trim());\n  } else {\n    stmts.push(`\nINSERT INTO athletes (name, country)\nSELECT ${esc(a.name)}, NULL\nWHERE NOT EXISTS (\n  SELECT 1 FROM athletes WHERE name = ${esc(a.name)} AND country IS NULL\n);\n`.trim());\n  }\n}\n\nstmts.push(`\nINSERT INTO results (\n  event_id, idp, bib_number, age_group,\n  rank_overall, rank_age_group, overall_time,\n  bonus, penalty, disqual_reason, info, detail_url\n) VALUES (\n  ${esc(event_id)}, ${esc(idp)}, ${esc(team['Bib Number'])}, ${esc(team['Age Group'] || item.age_group)},\n  ${escInt(overall['Rank (M/W)'] || item.rank)}, ${escInt(overall['Rank (AG)'] || item.rank_age_group)}, ${escInterval(overall['Overall Time'] || item.total)},\n  ${esc(judging['*Bonus'])}, ${esc(judging['*Penalty'])}, ${esc(judging['Disqual Reason'])}, ${esc(judging['Info'])},\n  ${esc(detail_url)}\n)\nON CONFLICT (event_id, idp) DO UPDATE SET\n  bib_number = EXCLUDED.bib_number,\n  age_group = EXCLUDED.age_group,\n  rank_overall = EXCLUDED.rank_overall,\n  rank_age_group = EXCLUDED.rank_age_group,\n  overall_time = EXCLUDED.overall_time,\n  bonus = EXCLUDED.bonus,\n  penalty = EXCLUDED.penalty,\n  disqual_reason = EXCLUDED.disqual_reason,\n  info = EXCLUDED.info,\n  detail_url = EXCLUDED.detail_url;\n`.trim());\n\nstmts.push(`DELETE FROM result_members WHERE result_id = ${RES_ID_SUBQ};`);\nstmts.push(`DELETE FROM workout_splits WHERE result_id = ${RES_ID_SUBQ};`);\nstmts.push(`DELETE FROM race_replay_splits WHERE result_id = ${RES_ID_SUBQ};`);\n\nmembers.forEach((a, i) => {\n  stmts.push(`\nINSERT INTO result_members (result_id, member_position, athlete_id)\nSELECT r.result_id, ${i + 1}, a.athlete_id\nFROM results r, athletes a\nWHERE r.event_id = ${esc(event_id)} AND r.idp = ${esc(idp)}\n  AND a.name = ${esc(a.name)} AND a.country ${countryEq(a.country)};\n`.trim());\n});\n\nworkout.forEach((s, i) => {\n  stmts.push(`\nINSERT INTO workout_splits (result_id, position, split_name, split_time, place)\nSELECT result_id, ${i + 1}, ${esc(s.Split)}, ${escInterval(s.Time)}, ${escInt(s.Place)}\nFROM results WHERE event_id = ${esc(event_id)} AND idp = ${esc(idp)};\n`.trim());\n});\n\nreplay.forEach((s, i) => {\n  stmts.push(`\nINSERT INTO race_replay_splits (result_id, position, split_name, time_of_day, elapsed_time, diff)\nSELECT result_id, ${i + 1}, ${esc(s.Split)}, ${escTime(s['Time Of Day'])}, ${escInterval(s.Time)}, ${escInterval(s.Diff)}\nFROM results WHERE event_id = ${esc(event_id)} AND idp = ${esc(idp)};\n`.trim());\n});\n\nreturn {\n  json: {\n    query: ['BEGIN;', ...stmts, 'COMMIT;'].join('\\n\\n')\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        864,
+        288
+      ],
+      "id": "28ee9dad-58f8-4b76-8be6-b1c9dff51608",
+      "name": "Data to Query"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n Code node — extract HYROX results from HTML in json.data\n// Mode: Run Once for All Items\n\nconst BASE_URL = 'https://results.hyrox.com/season-8/';\n\nfunction stripTags(s) {\n  return s.replace(/<[^>]+>/g, '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction decodeEntities(s) {\n  return s\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/&nbsp;/g, ' ');\n}\n\nfunction dedupeNames(s) {\n  const parts = s.split(',').map(p => p.trim()).filter(Boolean);\n  const out = [];\n  for (const p of parts) if (!out.includes(p)) out.push(p);\n  return out.join(', ');\n}\n\nfunction buildDetailUrl(href) {\n  if (!href) return null;\n  const decoded = decodeEntities(href);\n  if (/^https?:\\/\\//i.test(decoded)) return decoded;\n  return BASE_URL.replace(/\\/+$/, '/') + decoded.replace(/^\\/+/, '');\n}\n\nfunction getQueryParam(url, key) {\n  if (!url) return null;\n\n  const decoded = decodeEntities(url);\n  const m = decoded.match(new RegExp('[?&]' + key + '=([^&#]*)'));\n\n  return m ? decodeURIComponent(m[1]) : null;\n}\n\nfunction parseHyroxResults(html, itemCountry) {\n  const liRegex = /<li class=\"([^\"]*list-group-item[^\"]*)\"[^>]*>([\\s\\S]*?)<\\/li>/g;\n  const labelRegex = /<div class=\"[^\"]*list-label[^\"]*\"[^>]*>[\\s\\S]*?<\\/div>/;\n\n  const rows = [];\n  const seen = new Set();\n  let m;\n\n  while ((m = liRegex.exec(html)) !== null) {\n    const cls = m[1];\n    const content = m[2];\n\n    if (cls.includes('list-group-header')) continue;\n\n    const rankM = content.match(/<div class=\"[^\"]*place-primary[^\"]*\"[^>]*>([^<]+)<\\/div>/);\n    const ageRankM = content.match(/<div class=\"[^\"]*place-secondary[^\"]*\"[^>]*>([^<]+)<\\/div>/);\n    const linkM = content.match(/<h4[^>]*type-fullname[^>]*>\\s*<a[^>]*\\shref=\"([^\"]*)\"[^>]*>([\\s\\S]*?)<\\/a>/);\n\n    const ageBlockM = content.match(/<div class=\"[^\"]*type-age_class[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>\\s*<\\/div>/);\n    const timeBlockM = content.match(/<div class=\"[^\"]*type-time[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div>\\s*<\\/div>/);\n    const countryM = content.match(/<span class=\"nation__abbr\">([^<]+)<\\/span>/);\n\n    if (!rankM || !linkM) continue;\n\n    const country = countryM ? countryM[1].trim() : null;\n\n    const detail_url = buildDetailUrl(linkM[1]);\n    const idp = getQueryParam(detail_url, 'idp');\n\n    const dedupKey = idp || linkM[2];\n    if (seen.has(dedupKey)) continue;\n    seen.add(dedupKey);\n\n    const ageGroup = ageBlockM\n      ? stripTags(ageBlockM[1].replace(labelRegex, ''))\n      : null;\n\n    const total = timeBlockM\n      ? stripTags(timeBlockM[1].replace(labelRegex, ''))\n      : null;\n\n    rows.push({\n      rank: parseInt(rankM[1].trim(), 10),\n      rank_age_group: ageRankM ? parseInt(ageRankM[1].trim(), 10) : null,\n      member: dedupeNames(decodeEntities(stripTags(linkM[2]))),\n      country,\n      age_group: ageGroup,\n      total,\n      detail_url,\n      idp,\n    });\n  }\n\n  return rows;\n}\n\nconst output = [];\n\nfor (const item of $input.all()) {\n  const html = item.json.data;\n  const wantedCountry = item.json.country;\n\n  if (typeof html !== 'string' || !html) continue;\n\n  for (const row of parseHyroxResults(html, wantedCountry)) {\n    if (wantedCountry && row.country !== wantedCountry) continue;\n\n    output.push({\n      json: {\n        ...item.json,\n        ...row,\n      },\n    });\n  }\n}\n\nreturn output;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        -240
+      ],
+      "id": "614ea82b-99a4-4872-87e9-5cde7450577e",
+      "name": "Parse List",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// n8n Code node — extract Individual's Details, Workout Summary,\n// and Race Replay from a HYROX detail page. HTML in json.data.\n// Mode: Run Once for Each Item\n\nfunction stripTags(s) {\n  return String(s).replace(/<[^>]+>/g, '').replace(/\\s+/g, ' ').trim();\n}\n\nfunction decodeEntities(s) {\n  return String(s)\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&ndash;/g, '-')\n    .replace(/&mdash;/g, '-');\n}\n\nfunction clean(s) {\n  return decodeEntities(stripTags(s));\n}\n\nfunction nullIfBlank(v) {\n  if (v === undefined || v === null) return null;\n  if (v === '-' || v === '') return null;\n  return v;\n}\n\nfunction getQueryParam(url, key) {\n  if (!url) return null;\n  const decoded = decodeEntities(url);\n  const m = decoded.match(new RegExp('[?&]' + key + '=([^&#]*)'));\n  return m ? decodeURIComponent(m[1]) : null;\n}\n\nfunction extractById(html, id, span = 30000) {\n  const re = new RegExp(`<div[^>]*id=\"${id}\"[^>]*>`);\n  const m = re.exec(html);\n  return m ? html.slice(m.index, m.index + span) : null;\n}\n\nfunction extractFirstTable(scope) {\n  if (!scope) return null;\n  const m = scope.match(/<table[^>]*>([\\s\\S]*?)<\\/table>/);\n  return m ? m[1] : null;\n}\n\nfunction parseTable(tableHtml) {\n  if (!tableHtml) return [];\n\n  const theadM = tableHtml.match(/<thead[^>]*>([\\s\\S]*?)<\\/thead>/);\n  const headerScope = theadM ? theadM[1] : tableHtml;\n  const headers = [];\n  const thRe = /<th[^>]*>([\\s\\S]*?)<\\/th>/g;\n\n  let hm;\n  while ((hm = thRe.exec(headerScope)) !== null) {\n    headers.push(clean(hm[1]));\n  }\n\n  const tbodyM = tableHtml.match(/<tbody[^>]*>([\\s\\S]*?)<\\/tbody>/);\n  const bodyScope = tbodyM\n    ? tbodyM[1]\n    : tableHtml.replace(/<thead[\\s\\S]*?<\\/thead>/, '');\n\n  const rows = [];\n  const rowRe = /<tr[^>]*>([\\s\\S]*?)<\\/tr>/g;\n\n  let rm;\n  while ((rm = rowRe.exec(bodyScope)) !== null) {\n    const cellRe = /<(?:th|td)[^>]*>([\\s\\S]*?)<\\/(?:th|td)>/g;\n    const cells = [];\n\n    let cm;\n    while ((cm = cellRe.exec(rm[1])) !== null) {\n      cells.push(clean(cm[1]));\n    }\n\n    if (!cells.length) continue;\n\n    const obj = {};\n    headers.forEach((h, i) => {\n      obj[h] = nullIfBlank(cells[i]);\n    });\n\n    rows.push(obj);\n  }\n\n  return rows;\n}\n\nfunction parseKeyValueTable(tableHtml) {\n  if (!tableHtml) return {};\n\n  const tbodyM = tableHtml.match(/<tbody[^>]*>([\\s\\S]*?)<\\/tbody>/);\n  const scope = tbodyM ? tbodyM[1] : tableHtml;\n\n  const out = {};\n  const rowRe = /<tr[^>]*>([\\s\\S]*?)<\\/tr>/g;\n\n  let rm;\n  while ((rm = rowRe.exec(scope)) !== null) {\n    const row = rm[1];\n    const keyM = row.match(/<th[^>]*class=\"[^\"]*desc[^\"]*\"[^>]*>([\\s\\S]*?)<\\/th>/);\n    const valM = row.match(/<td[^>]*>([\\s\\S]*?)<\\/td>/);\n\n    if (!keyM) continue;\n\n    const key = clean(keyM[1]);\n    if (!key) continue;\n\n    out[key] = nullIfBlank(valM ? clean(valM[1]) : null);\n  }\n\n  return out;\n}\n\nfunction parseIndividualDetails(html) {\n  const SKIP_IDS = new Set(['detail-box-features']);\n\n  const leftM = html.match(\n    /<div[^>]*class=\"[^\"]*detail-channel[^\"]*channel-left[^\"]*\"[^>]*>([\\s\\S]*?)<\\/div><!-- detail-channel -->/\n  );\n\n  const scope = leftM ? leftM[1] : html;\n  const boxes = [];\n\n  const boxRe = /<div[^>]*id=\"(detail-box-[^\"]+)\"[^>]*>([\\s\\S]*?)<\\/div>\\s*(?=<div[^>]*id=\"detail-box-|<\\/div><!-- untabbed-boxes)/g;\n\n  let bm;\n  while ((bm = boxRe.exec(scope)) !== null) {\n    const id = bm[1];\n    if (SKIP_IDS.has(id)) continue;\n\n    const inner = bm[2];\n    const titleM = inner.match(/<h3[^>]*>([\\s\\S]*?)<\\/h3>/);\n    const tableM = inner.match(/<table[^>]*>([\\s\\S]*?)<\\/table>/);\n\n    if (!titleM || !tableM) continue;\n\n    const title = clean(titleM[1]);\n    const items = parseKeyValueTable(tableM[1]);\n\n    if (Object.keys(items).length) {\n      boxes.push({ title, items });\n    }\n  }\n\n  return boxes;\n}\n\nconst input = {\n  ...$('Random Wait').item.json,\n  ...$json,\n};\n\nconst html = input.data;\n\nif (!input.detail_url) {\n  throw new Error('Missing detail_url in Parse Result input');\n}\n\nif (typeof html !== 'string' || !html) {\n  return { json: input };\n}\n\nconst individual_details = parseIndividualDetails(html);\n\nconst workout_summary = parseTable(\n  extractFirstTable(extractById(html, 'detail-box-other'))\n);\n\nconst race_replay = parseTable(\n  extractFirstTable(extractById(html, 'detail-box-splits'))\n);\n\nconst { data, ...rest } = input;\n\nconst idp =\n  rest.idp ||\n  getQueryParam(rest.detail_url, 'idp');\n\nconst event_id =\n  rest.event_id ||\n  $('Edit Fields').first().json.event_id;\n\nreturn {\n  json: {\n    ...rest,\n    event_id,\n    idp,\n    individual_details,\n    workout_summary,\n    race_replay,\n  },\n};"
+      },
+      "id": "f447072f-0074-483e-8aeb-33ff90136e15",
+      "name": "Parse Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "{{ $json.query }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1088,
+        496
+      ],
+      "id": "0002bfbc-f48e-48de-933f-108350ef92e3",
+      "name": "Save Result to DB",
+      "credentials": {
+        "postgres": {
+          "id": "TVAUpjzY0vRGWegm",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json; \nconst pages = [];\nfor (let page = 1; page <= 200; page++) { \n  pages.push({ \n    json: {\n      event_id: input.event_id, \n      sex: input.search.sex, \n      age_class: input.search.age_class, \n      country: input.search.nation, \n      page, \n    } \n  }); \n} \nreturn pages;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        176
+      ],
+      "id": "3409b7fd-93a9-4912-accb-82c68b4854e8",
+      "name": "Generate Pages"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -976,
+        176
+      ],
+      "id": "8d688274-65e1-4354-af1f-327a4f897d79",
+      "name": "Loop Over pages"
+    },
+    {
+      "parameters": {
+        "amount": "={{ Math.random() * 2 + 1 }}"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -736,
+        -240
+      ],
+      "id": "0f886710-be35-4fbd-aceb-70181aa1af0e",
+      "name": "Wait",
+      "webhookId": "150968fc-ef88-4451-839b-f7a821a1a74b"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Single Page": {
+      "main": [
+        [
+          {
+            "node": "Parse List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Single Details": {
+      "main": [
+        [
+          {
+            "node": "Parse Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Random Wait": {
+      "main": [
+        [
+          {
+            "node": "Fetch Single Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Loop Over pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Random Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Generate Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data to Query": {
+      "main": [
+        [
+          {
+            "node": "Save Result to DB",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse List": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Result": {
+      "main": [
+        [
+          {
+            "node": "Data to Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Result to DB": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Pages": {
+      "main": [
+        [
+          {
+            "node": "Loop Over pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over pages": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Fetch Single Page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "2f945d48-6546-4ba8-aabe-d7ecbcd6c485",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7c1d191dc7ffc422aafb137eedf46812737f8b0b6deff929e7760acdafa9230e"
+  },
+  "id": "lpPdD1gnpRZ7H33Q",
+  "tags": []
+}
