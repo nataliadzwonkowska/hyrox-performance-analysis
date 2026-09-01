@@ -101,7 +101,7 @@ Combines HYROX performance data with country-level indicators from Eurostat and 
 
 The interactive Power BI dashboard is available here:
 
-[View the Power BI dashboard](YOUR_POWER_BI_LINK_HERE)
+[View the Power BI dashboard]((https://app.powerbi.com/view?r=eyJrIjoiMjMxMjY3MmEtYjA5OC00MGNlLTljYWQtZThlNDBhOTFlMGY3IiwidCI6IjNkZmU5YWI2LTgxYmYtNDkxYy1iNjcwLTAxYzgyNGEwOWUxOSJ9))
 
 ## Technologies
 
